@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver Daily Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+label { font-weight: bold; margin-top: 10px; display: block; }
+input[type="text"], input[type="time"], select, textarea { margin-top:4px; margin-bottom:10px; padding:6px; width:220px; box-sizing:border-box;}
+textarea { width:100%; height:40px; resize:vertical;}
+button { padding:8px 15px; margin-top:10px; cursor:pointer;}
+table { width:100%; border-collapse: collapse; margin-top:20px; font-size:14px;}
+th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
+th { background-color:#eee; }
+
+th:nth-child(4), td:nth-child(4) { width:120px; }  
+th:nth-child(9), td:nth-child(9) { width:140px; }  
+th:nth-child(10), td:nth-child(10) { width:250px; }
+
+td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#f0f8ff; }
+.short { width:120px;}
+#alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
+</style>
+</head>
+<body>
+
+<h2>Driver Daily Report</h2>
+
+<label for="vehicle">Vehicle:</label>
+<input type="text" id="vehicle" class="short" placeholder="Vehicle">
+
+<label for="run">Run:</label>
+<input type="text" id="run" class="short" placeholder="Run #">
+
+<hr>
+
+<label for="specification">Collection and Delivery Specification:</label>
+<select id="specification" required>
+  <option value="">Select specification</option>
+  <option value="Collection Only">Collection Only</option>
+  <option value="Delivery Only">Delivery Only</option>
+  <option value="Collection and Delivery">Collection and Delivery</option>
+</select>
+
+<label for="location">Collection and Delivery Point:</label>
+<select id="location" required>
+  <option value="">Select</option>
+  <option value="AC">AC</option>
+  <option value="ASC">ASC</option>
+  <option value="BA WC">BA WC</option>
+  <option value="BA WC 2nd">BA WC 2nd</option>
+  <option value="Ba XPS">Ba XPS</option>
+  <option value="DAI">DAI</option>
+  <option value="Dnata CP">Dnata CP</option>
+  <option value="Dnata CX">Dnata CX</option>
+  <option value="Dnata U1">Dnata U1</option>
+  <option value="Dnata U2">Dnata U2</option>
+  <option value="Dnata U3">Dnata U3</option>
+  <option value="Dnata VS/Delta">Dnata VS/Delta</option>
+  <option value="HCH">HCH</option>
+  <option value="HCH Horton">HCH Horton</option>
+  <option value="JL">JL</option>
+  <option value="LG">LG</option>
+  <option value="LANDMARK GLOBAL">LANDMARK GLOBAL</option>
+  <option value="MW">MW</option>
+  <option value="Scylla Rd">Scylla Rd</option>
+  <option value="Scylla U1">Scylla U1</option>
+  <option value="WFS 549">WFS 549</option>
+  <option value="WFS 550">WFS 550</option>
+  <option value="ECMS">ECMS</option>
+  <option value="Swissport">Swissport</option>
+  <option value="BREAK">BREAK</option>
+  <option value="manual">Other (Manual)</option>
+</select>
+
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
+
+<label for="arrival">Arrival Time:</label>
+<input type="time" id="arrival">
+
+<label for="booking">Booking Time:</label>
+<input type="time" id="booking">
+
+<label for="loading">Loading:</label>
+<input type="time" id="loading">
+
+<label for="departure">Departure:</label>
+<input type="time" id="departure">
+
+<label for="comment">Comment:</label>
+<textarea id="comment" placeholder="Add comment"></textarea>
+
+<button id="addEntryBtn" type="button">Add Location</button>
+
+<hr>
+
+<label for="filterDate">Select Date to View / Generate Excel:</label>
+<input type="date" id="filterDate" class="short">
+
+<div id="alertExcel">
+⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
+</div>
+
+<button id="sendExcelBtn" type="button">Send Excel</button>
+
+<table id="reportTable">
+<thead>
+<tr>
+<th>Date</th>
+<th>Vehicle</th>
+<th>Run</th>
+<th>Collection and Delivery Point</th>
+<th>Arrival Time</th>
+<th>Booking Time</th>
+<th>Loading</th>
+<th>Departure</th>
+<th>Collection and Delivery Specification</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+const specificationOptions=["Collection Only","Delivery Only","Collection and Delivery"];
+
+document.getElementById('location').addEventListener('change', function() {
+  if(this.value==='manual') document.getElementById('manualLocation').style.display='block';
+  else { document.getElementById('manualLocation').style.display='none'; document.getElementById('manualLocation').value=''; }
+});
+
+let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
+let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
+
+window.onload = function(){
+  if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
+  if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
+  if(localStorage.getItem('specification')) document.getElementById('specification').value=localStorage.getItem('specification');
+
+  ['arrival','booking','loading','departure'].forEach(id=>{ if(!document.getElementById(id).value) document.getElementById(id).value=id==="departure"?"09:00":"08:00"; });
+  
+  populateFilterDate();
+  document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+  loadTable();
+};
+
+function populateFilterDate(){
+  const filterDate=document.getElementById('filterDate');
+  const dateSet=new Set();
+  Object.keys(dailyData).forEach(day=>{
+    Object.keys(dailyData[day]).forEach(run=>{
+      dailyData[day][run].forEach(entry=>{ dateSet.add(entry.date); });
+    });
+  });
+  const dates=Array.from(dateSet).sort();
+  if(dates.length===0){ filterDate.value=""; filterDate.placeholder="No data available"; return; }
+  filterDate.value=dates[0]; filterDate.min=dates[0]; filterDate.max=dates[dates.length-1];
+}
+
+function getRunKey(){ return document.getElementById('run').value.trim(); }
+
+function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
+  const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+  tbody.innerHTML="";
+  const runKey=getRunKey();
+  if(!dailyData[dateForTable]) return;
+
+  Object.keys(dailyData[dateForTable]).forEach(run=>{
+    if(runKey && run!==runKey) return;
+    dailyData[dateForTable][run].forEach(entry=>{
+      const row=tbody.insertRow();
+      let cell;
+
+      cell=row.insertCell(); cell.textContent=entry.date; cell.contentEditable=false;
+      cell=row.insertCell(); cell.textContent=entry.vehicle; cell.contentEditable=true;
+      cell=row.insertCell(); cell.textContent=entry.run; cell.contentEditable=true;
+      cell=row.insertCell(); cell.textContent=entry.location; cell.contentEditable=true;
+
+      ['arrival','booking','loading','departure'].forEach(field=>{
+        cell=row.insertCell(); cell.textContent=entry[field]||""; cell.contentEditable=true;
+      });
+
+      // 🔥 Collection and Delivery Specification as text editable
+      cell=row.insertCell(); cell.textContent=entry.specification||""; cell.contentEditable=true;
+
+      cell=row.insertCell(); cell.textContent=entry.comment||""; cell.contentEditable=true;
+    });
+  });
+}
+
+// 🔄 Reîncarcă tabelul automat când se schimbă Run
+document.getElementById('run').addEventListener('input', function(){
+  const selectedDate = document.getElementById('filterDate').value 
+        || new Date().toISOString().split('T')[0];
+  loadTable(selectedDate);
+});
+
+document.getElementById('filterDate').addEventListener('change', function(){ loadTable(this.value); });
+
+document.getElementById('addEntryBtn').addEventListener('click', function(){
+  const vehicle=document.getElementById('vehicle').value.trim();
+  const run=document.getElementById('run').value.trim();
+  const date=new Date().toISOString().split('T')[0];
+  const specification=document.getElementById('specification').value;
+  let locationSelect=document.getElementById('location').value;
+  let location=locationSelect==='manual'?document.getElementById('manualLocation').value.trim():locationSelect;
+  const arrival=document.getElementById('arrival').value;
+  const booking=document.getElementById('booking').value;
+  const loading=document.getElementById('loading').value;
+  const departure=document.getElementById('departure').value;
+  const comment=document.getElementById('comment').value.trim();
+
+  if(!vehicle||!run||!location||!specification){ alert("Please fill all required fields!"); return; }
+
+  localStorage.setItem('vehicle',vehicle);
+  localStorage.setItem('run',run);
+  localStorage.setItem('specification',specification);
+
+  if(!dailyData[date]) dailyData[date]={};
+  if(!dailyData[date][run]) dailyData[date][run]=[];
+
+  const entry={date,vehicle,run,location,arrival,booking,loading,departure,specification,comment};
+  dailyData[date][run].push(entry);
+  localStorage.setItem('dailyData',JSON.stringify(dailyData));
+
+  document.getElementById('location').value=""; 
+  document.getElementById('manualLocation').value=""; 
+  document.getElementById('manualLocation').style.display='none';
+  ['arrival','booking','loading','departure'].forEach(id=>document.getElementById(id).value="");
+  document.getElementById('comment').value=""; 
+  document.getElementById('specification').value="";
+
+  populateFilterDate();
+  loadTable(date);
+});
+
+document.getElementById('sendExcelBtn').addEventListener('click', function(){
+  const filterDate=document.getElementById('filterDate').value;
+  if(!filterDate||!dailyData[filterDate]){ alert("No data for selected date!"); return; }
+
+  const runKey=getRunKey();
+  let csvContent="data:text/csv;charset=utf-8,";
+  csvContent+="Date,Vehicle,Run,Collection and Delivery Point,Arrival Time,Booking Time,Loading,Departure,Collection and Delivery Specification,Comment\n";
+
+  dailyData[filterDate][runKey]?.forEach(entry=>{
+    const row=[
+      entry.date, entry.vehicle, entry.run, entry.location, entry.arrival||"",
+      entry.booking||"", entry.loading||"", entry.departure||"",
+      entry.specification||"", entry.comment?'"'+entry.comment.replace(/"/g,'""')+'"':""
+    ];
+    csvContent+=row.join(",")+"\n";
+  });
+
+  const encodedUri=encodeURI(csvContent);
+  const link=document.createElement("a");
+  link.setAttribute("href",encodedUri);
+  link.setAttribute("download",`driver_daily_report_${filterDate}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
+
+  generatedDays[filterDate]=true;
+  localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
+  alert("Excel generated for "+filterDate);
+});
+</script>
+
+</body>
+</html>
