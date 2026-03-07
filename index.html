@@ -156,7 +156,6 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Delete button cu fereastra pop-up
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
