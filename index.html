@@ -6,7 +6,6 @@
 <title>Driver Daily Report - BEN</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
@@ -20,15 +19,11 @@ th { background-color:#eee; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 .deleteBtn { background-color:#dc3545; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; }
-#qrcode { margin-top:20px; }
 </style>
 </head>
 <body>
 
 <h2>Driver Daily Report - BEN</h2>
-
-<!-- QR Code -->
-<div id="qrcode"></div>
 
 <label>Vehicle:</label>
 <input type="text" id="vehicle">
@@ -129,16 +124,7 @@ th { background-color:#eee; }
 <script>
 const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
-
-// Surse ATR/ARCY care nu trebuie afișate
 const blockedSources = ["gplgrunsheetARCY","gplgrunsheetATR"];
-
-// Generare QR Code
-new QRCode(document.getElementById("qrcode"), {
-  text: "https://gplg123.github.io/gplgrunsheetBEN/",
-  width: 128,
-  height: 128,
-});
 
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
@@ -149,7 +135,6 @@ locationSelect.addEventListener('change', ()=>{
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
-// Load table
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
@@ -158,9 +143,7 @@ function loadTable(date = filterDate.value){
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[date][runKey].forEach((entry, idx)=>{
-      // Filter ATR/ARCY
       if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
-
       const row = tbody.insertRow();
       row.insertCell().textContent = entry.date;
       row.insertCell().textContent = entry.vehicle;
@@ -173,7 +156,7 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Delete button cu confirmare
+      // Delete button cu fereastra pop-up
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
@@ -216,7 +199,6 @@ addEntryBtn.addEventListener('click', ()=>{
   loadTable(date);
 });
 
-// Export Excel
 sendExcelBtn.addEventListener('click', ()=>{
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
