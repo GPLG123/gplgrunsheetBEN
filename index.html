@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Driver Daily Report</title>
+<title>Driver Daily Report - BEN</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
 
@@ -23,7 +23,7 @@ th { background-color:#eee; }
 </head>
 <body>
 
-<h2>Driver Daily Report</h2>
+<h2>Driver Daily Report - BEN</h2>
 
 <label>Vehicle:</label>
 <input type="text" id="vehicle">
@@ -125,7 +125,7 @@ th { background-color:#eee; }
 const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
-// Lista surselor de ascuns
+// Surse ATR/ARCY care nu trebuie afișate
 const blockedSources = ["gplgrunsheetARCY","gplgrunsheetATR"];
 
 const locationSelect = document.getElementById('location');
@@ -146,7 +146,7 @@ function loadTable(date = filterDate.value){
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[date][runKey].forEach((entry, idx)=>{
-      // Filter blocked sources
+      // Filter ATR/ARCY
       if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
 
       const row = tbody.insertRow();
@@ -161,7 +161,7 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Add Delete button
+      // Delete button
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
