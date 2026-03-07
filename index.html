@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Driver Daily Report - BEN</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -26,12 +26,12 @@ th { background-color:#eee; }
 <h2>Driver Daily Report - BEN</h2>
 
 <label>Vehicle:</label>
-<input type="text" id="vehicle">
+<input type="text" id="vehicle" />
 
 <label>Run #:</label>
-<input type="text" id="run">
+<input type="text" id="run" />
 
-<hr>
+<hr />
 
 <label>Collection and Delivery Specification:</label>
 <select id="specification">
@@ -72,29 +72,29 @@ th { background-color:#eee; }
   <option value="manual">Other (Manual)</option>
 </select>
 
-<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;" />
 
 <label>Arrival Time:</label>
-<input type="time" id="arrival">
+<input type="time" id="arrival" />
 
 <label>Booking Time:</label>
-<input type="time" id="booking">
+<input type="time" id="booking" />
 
 <label>Loading:</label>
-<input type="time" id="loading">
+<input type="time" id="loading" />
 
 <label>Departure:</label>
-<input type="time" id="departure">
+<input type="time" id="departure" />
 
 <label>Comment:</label>
 <textarea id="comment"></textarea>
 
 <button id="addEntryBtn">Add Location</button>
 
-<hr>
+<hr />
 
 <label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate">
+<input type="date" id="filterDate" />
 
 <div id="alertExcel">
 ⚠️ After adding all locations, click <strong>Send Excel</strong> to save report.
@@ -123,27 +123,28 @@ th { background-color:#eee; }
 
 <script>
 const HOURLY_RATE = 37.5;
-let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
+let dailyData = JSON.parse(localStorage.getItem('dailyData') || "{}");
 const blockedSources = ["gplgrunsheetARCY","gplgrunsheetATR"];
 
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
-locationSelect.addEventListener('change', ()=>{
+locationSelect.addEventListener('change', () => {
   manualLocationInput.style.display = (locationSelect.value === 'manual') ? 'block' : 'none';
 });
 
-function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
-function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
+function timeToMinutes(t) { if(!t) return null; const [h,m] = t.split(":").map(Number); return h * 60 + m; }
+function roundTo30(mins) { let r = mins % 30; return (r <= 15) ? mins - r : mins + (30 - r); }
 
-function loadTable(date = filterDate.value){
+function loadTable(date = filterDate.value) {
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
   const runFilter = run.value.trim();
-  if(!dailyData[date]) return;
-  Object.keys(dailyData[date]).forEach(runKey=>{
-    if(runFilter && runKey !== runFilter) return;
-    dailyData[date][runKey].forEach((entry, idx)=>{
-      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+  if (!dailyData[date]) return;
+  Object.keys(dailyData[date]).forEach(runKey => {
+    if (runFilter && runKey !== runFilter) return;
+    dailyData[date][runKey].forEach((entry, idx) => {
+      if (blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+
       const row = tbody.insertRow();
       row.insertCell().textContent = entry.date;
       row.insertCell().textContent = entry.vehicle;
@@ -160,9 +161,9 @@ function loadTable(date = filterDate.value){
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
       delBtn.className = "deleteBtn";
-      delBtn.onclick = ()=>{
-        if(confirm("Sunteți sigur că vreți să ștergeți acest rând?")) {
-          dailyData[date][runKey].splice(idx,1);
+      delBtn.onclick = () => {
+        if (confirm("Sunteți sigur că vreți să ștergeți acest rând?")) {
+          dailyData[date][runKey].splice(idx, 1);
           localStorage.setItem('dailyData', JSON.stringify(dailyData));
           loadTable(date);
         }
@@ -172,10 +173,10 @@ function loadTable(date = filterDate.value){
   });
 }
 
-filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
-run.addEventListener('input', ()=>loadTable(filterDate.value));
+filterDate.addEventListener('change', () => loadTable(filterDate.value));
+run.addEventListener('input', () => loadTable(filterDate.value));
 
-addEntryBtn.addEventListener('click', ()=>{
+addEntryBtn.addEventListener('click', () => {
   const vehicleVal = vehicle.value.trim();
   const runVal = run.value.trim();
   const date = new Date().toISOString().split('T')[0];
@@ -186,9 +187,9 @@ addEntryBtn.addEventListener('click', ()=>{
   const loadingVal = loading.value;
   const departureVal = departure.value;
   const commentVal = comment.value.trim();
-  if(!vehicleVal||!runVal||!locationVal||!specificationVal) return alert("Fill required fields");
-  if(!dailyData[date]) dailyData[date]={};
-  if(!dailyData[date][runVal]) dailyData[date][runVal]=[];
+  if (!vehicleVal || !runVal || !locationVal || !specificationVal) return alert("Fill required fields");
+  if (!dailyData[date]) dailyData[date] = {};
+  if (!dailyData[date][runVal]) dailyData[date][runVal] = [];
   dailyData[date][runVal].push({
     date, vehicle: vehicleVal, run: runVal, location: locationVal,
     arrival: arrivalVal, booking: bookingVal, loading: loadingVal,
@@ -198,16 +199,16 @@ addEntryBtn.addEventListener('click', ()=>{
   loadTable(date);
 });
 
-sendExcelBtn.addEventListener('click', ()=>{
+sendExcelBtn.addEventListener('click', () => {
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
-  if(!dailyData[selectedDate]) return alert("No data for date");
+  if (!dailyData[selectedDate]) return alert("No data for date");
 
-  let rows=[];
-  Object.keys(dailyData[selectedDate]).forEach(runKey=>{
-    if(runFilter && runKey !== runFilter) return;
-    dailyData[selectedDate][runKey].forEach(entry=>{
-      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+  let rows = [];
+  Object.keys(dailyData[selectedDate]).forEach(runKey => {
+    if (runFilter && runKey !== runFilter) return;
+    dailyData[selectedDate][runKey].forEach(entry => {
+      if (blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
       rows.push([
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.loading, entry.departure,
@@ -216,13 +217,13 @@ sendExcelBtn.addEventListener('click', ()=>{
     });
   });
 
-  if(rows.length===0) return alert("No data for selected run/date");
+  if (rows.length === 0) return alert("No data for selected run/date");
 
-  let arrivals = rows.map(r => timeToMinutes(r[4])).filter(v=>v!=null);
-  let departures = rows.map(r => timeToMinutes(r[7])).filter(v=>v!=null);
+  let arrivals = rows.map(r => timeToMinutes(r[4])).filter(v => v != null);
+  let departures = rows.map(r => timeToMinutes(r[7])).filter(v => v != null);
   let totalHours = 0;
-  if(arrivals.length && departures.length){
-    totalHours = roundTo30(Math.max(...departures)-Math.min(...arrivals))/60;
+  if (arrivals.length && departures.length) {
+    totalHours = roundTo30(Math.max(...departures) - Math.min(...arrivals)) / 60;
   }
   let totalCost = totalHours * HOURLY_RATE;
 
@@ -236,17 +237,17 @@ sendExcelBtn.addEventListener('click', ()=>{
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  ws["B1"].z="0.00"; ws["B2"].z="£0.00"; ws["B3"].z="£0.00";
+  ws["B1"].z = "0.00"; ws["B2"].z = "£0.00"; ws["B3"].z = "£0.00";
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
   let fileName = `Driver_Report_${selectedDate}`;
-  if(runFilter) fileName += `_Run_${runFilter}`;
-  XLSX.writeFile(wb, fileName+".xlsx");
+  if (runFilter) fileName += `_Run_${runFilter}`;
+  XLSX.writeFile(wb, fileName + ".xlsx");
 });
 
-window.onload = function(){
+window.onload = function () {
   filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
 };
