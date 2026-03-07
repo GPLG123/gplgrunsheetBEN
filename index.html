@@ -18,6 +18,7 @@ th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
 th { background-color:#eee; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
+.deleteBtn { background-color:#dc3545; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; }
 </style>
 </head>
 <body>
@@ -114,6 +115,7 @@ th { background-color:#eee; }
 <th>Departure</th>
 <th>Specification</th>
 <th>Comment</th>
+<th>Action</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -123,18 +125,19 @@ th { background-color:#eee; }
 const HOURLY_RATE = 37.5;
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
-// Show/hide manual location input
+// Lista surselor de ascuns
+const blockedSources = ["gplgrunsheetARCY","gplgrunsheetATR"];
+
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
 locationSelect.addEventListener('change', ()=>{
   manualLocationInput.style.display = (locationSelect.value === 'manual') ? 'block' : 'none';
 });
 
-// Utilities
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
-// Load table with date + run filter
+// Load table
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
@@ -142,7 +145,10 @@ function loadTable(date = filterDate.value){
   if(!dailyData[date]) return;
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
-    dailyData[date][runKey].forEach(entry=>{
+    dailyData[date][runKey].forEach((entry, idx)=>{
+      // Filter blocked sources
+      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+
       const row = tbody.insertRow();
       row.insertCell().textContent = entry.date;
       row.insertCell().textContent = entry.vehicle;
@@ -154,11 +160,22 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.departure;
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
+
+      // Add Delete button
+      const actionCell = row.insertCell();
+      const delBtn = document.createElement('button');
+      delBtn.textContent = "Delete";
+      delBtn.className = "deleteBtn";
+      delBtn.onclick = ()=>{
+        dailyData[date][runKey].splice(idx,1);
+        localStorage.setItem('dailyData', JSON.stringify(dailyData));
+        loadTable(date);
+      };
+      actionCell.appendChild(delBtn);
     });
   });
 }
 
-// Event listeners
 filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
 run.addEventListener('input', ()=>loadTable(filterDate.value));
 
@@ -191,28 +208,26 @@ sendExcelBtn.addEventListener('click', ()=>{
   const runFilter = run.value.trim();
   if(!dailyData[selectedDate]) return alert("No data for date");
 
-  let arrivals=[], departures=[], rows=[];
-
+  let rows=[];
   Object.keys(dailyData[selectedDate]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[selectedDate][runKey].forEach(entry=>{
+      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
       rows.push([
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.loading, entry.departure,
         entry.specification, entry.comment
       ]);
-      if(entry.arrival) arrivals.push(timeToMinutes(entry.arrival));
-      if(entry.departure) departures.push(timeToMinutes(entry.departure));
     });
   });
 
   if(rows.length===0) return alert("No data for selected run/date");
 
-  let totalHours=0;
+  let arrivals = rows.map(r => timeToMinutes(r[4])).filter(v=>v!=null);
+  let departures = rows.map(r => timeToMinutes(r[7])).filter(v=>v!=null);
+  let totalHours = 0;
   if(arrivals.length && departures.length){
-    let start=Math.min(...arrivals);
-    let end=Math.max(...departures);
-    totalHours = roundTo30(end-start)/60;
+    totalHours = roundTo30(Math.max(...departures)-Math.min(...arrivals))/60;
   }
   let totalCost = totalHours * HOURLY_RATE;
 
@@ -231,13 +246,11 @@ sendExcelBtn.addEventListener('click', ()=>{
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
-  let fileName = "Driver_Report_"+selectedDate;
-  if(runFilter) fileName += "_Run_"+runFilter;
-
+  let fileName = `Driver_Report_${selectedDate}`;
+  if(runFilter) fileName += `_Run_${runFilter}`;
   XLSX.writeFile(wb, fileName+".xlsx");
 });
 
-// Initialize
 window.onload = function(){
   filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
