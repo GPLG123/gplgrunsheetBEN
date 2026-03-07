@@ -6,6 +6,7 @@
 <title>Driver Daily Report - BEN</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
@@ -19,11 +20,15 @@ th { background-color:#eee; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 .deleteBtn { background-color:#dc3545; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; }
+#qrcode { margin-top:20px; }
 </style>
 </head>
 <body>
 
 <h2>Driver Daily Report - BEN</h2>
+
+<!-- QR Code -->
+<div id="qrcode"></div>
 
 <label>Vehicle:</label>
 <input type="text" id="vehicle">
@@ -128,6 +133,13 @@ let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 // Surse ATR/ARCY care nu trebuie afișate
 const blockedSources = ["gplgrunsheetARCY","gplgrunsheetATR"];
 
+// Generare QR Code
+new QRCode(document.getElementById("qrcode"), {
+  text: "https://gplg123.github.io/gplgrunsheetBEN/",
+  width: 128,
+  height: 128,
+});
+
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
 locationSelect.addEventListener('change', ()=>{
@@ -161,15 +173,17 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Delete button
+      // Delete button cu confirmare
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
       delBtn.className = "deleteBtn";
       delBtn.onclick = ()=>{
-        dailyData[date][runKey].splice(idx,1);
-        localStorage.setItem('dailyData', JSON.stringify(dailyData));
-        loadTable(date);
+        if(confirm("Sunteți sigur că vreți să ștergeți acest rând?")) {
+          dailyData[date][runKey].splice(idx,1);
+          localStorage.setItem('dailyData', JSON.stringify(dailyData));
+          loadTable(date);
+        }
       };
       actionCell.appendChild(delBtn);
     });
