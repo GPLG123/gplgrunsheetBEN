@@ -112,8 +112,8 @@ th { background-color:#eee; }
 <th>Arrival</th>
 <th>Booking</th>
 <th>Departure</th>
-<th>QTY</th>
 <th>Specification</th>
+<th>QTY</th>
 <th>Comment</th>
 <th>Action</th>
 </tr>
@@ -146,6 +146,16 @@ function roundTo30(mins){
   return (r < 15) ? mins - r : mins + (30 - r);
 }
 
+/* GET UK LOCAL DATE (GMT/BST) */
+function getUKDate(){
+  const today = new Date();
+  const offset = today.getTimezoneOffset() / 60; // difference from UTC in hours
+  const ukTime = new Date(today.getTime() + ((0 - offset) * 60 * 60 * 1000)); // adjust to UK
+  return ukTime.getFullYear() + "-" +
+         String(ukTime.getMonth()+1).padStart(2,'0') + "-" +
+         String(ukTime.getDate()).padStart(2,'0');
+}
+
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML="";
@@ -162,8 +172,8 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.arrival;
       row.insertCell().textContent = entry.booking;
       row.insertCell().textContent = entry.departure;
-      row.insertCell().textContent = entry.qty;
       row.insertCell().textContent = entry.specification;
+      row.insertCell().textContent = entry.qty;
       row.insertCell().textContent = entry.comment;
 
       const actionCell = row.insertCell();
@@ -171,9 +181,11 @@ function loadTable(date = filterDate.value){
       delBtn.textContent = "Delete";
       delBtn.className="deleteBtn";
       delBtn.onclick = ()=>{
-        dailyData[date][runKey].splice(idx,1);
-        localStorage.setItem('dailyData',JSON.stringify(dailyData));
-        loadTable(date);
+        if(confirm("Are you sure you want to delete this line?")){
+          dailyData[date][runKey].splice(idx,1);
+          localStorage.setItem('dailyData',JSON.stringify(dailyData));
+          loadTable(date);
+        }
       };
       actionCell.appendChild(delBtn);
     });
@@ -186,7 +198,7 @@ run.addEventListener('input',()=>loadTable(filterDate.value));
 addEntryBtn.addEventListener('click',()=>{
   const vehicleVal = vehicle.value.trim();
   const runVal = run.value.trim();
-  const date = new Date().toISOString().split('T')[0];
+  const date = getUKDate();
   const specificationVal = specification.value;
   let locationVal = (locationSelect.value==='manual') ? manualLocationInput.value.trim() : locationSelect.value;
   const arrivalVal = arrival.value;
@@ -203,7 +215,7 @@ addEntryBtn.addEventListener('click',()=>{
   dailyData[date][runVal].push({
     date, vehicle:vehicleVal, run:runVal, location:locationVal,
     arrival:arrivalVal, booking:bookingVal, departure:departureVal,
-    qty:qtyVal, specification:specificationVal, comment:commentVal
+    specification:specificationVal, qty:qtyVal, comment:commentVal
   });
 
   localStorage.setItem('dailyData',JSON.stringify(dailyData));
@@ -222,7 +234,7 @@ sendExcelBtn.addEventListener('click',()=>{
       rows.push([
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.departure,
-        entry.qty, entry.specification, entry.comment
+        entry.specification, entry.qty, entry.comment
       ]);
     });
   });
@@ -253,7 +265,7 @@ sendExcelBtn.addEventListener('click',()=>{
     ["HOURLY RATE (£)",HOURLY_RATE],
     ["TOTAL COST (£)",totalCost],
     [],
-    ["Date","Vehicle","Run","Location","Arrival","Booking","Departure","QTY","Specification","Comment"],
+    ["Date","Vehicle","Run","Location","Arrival","Booking","Departure","Specification","QTY","Comment"],
     ...rows
   ];
 
@@ -269,7 +281,7 @@ sendExcelBtn.addEventListener('click',()=>{
 });
 
 window.onload=function(){
-  filterDate.value=new Date().toISOString().split('T')[0];
+  filterDate.value=getUKDate();
   loadTable();
 };
 </script>
